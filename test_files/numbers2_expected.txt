@@ -1,0 +1,40 @@
+Max: 1.00
+Min: 1.00
+Average: 1.00
+Last five: 1.00 
+Max: 3.14
+Min: 1.00
+Average: 2.07
+Last five: 1.00 3.14 
+Max: 3.14
+Min: 1.00
+Average: 2.27
+Last five: 1.00 3.14 2.67 
+Max: 5.09
+Min: 1.00
+Average: 2.98
+Last five: 1.00 3.14 2.67 5.09 
+Max: 5.09
+Min: -32.45
+Average: -4.11
+Last five: 1.00 3.14 2.67 5.09 -32.45 
+Max: 87.00
+Min: -32.45
+Average: 13.09
+Last five: 3.14 2.67 5.09 -32.45 87.00 
+Max: 101.21
+Min: -32.45
+Average: 32.70
+Last five: 2.67 5.09 -32.45 87.00 101.21 
+Max: 595.32
+Min: -32.45
+Average: 151.23
+Last five: 5.09 -32.45 87.00 101.21 595.32 
+Max: 595.32
+Min: -32.45
+Average: 169.92
+Last five: -32.45 87.00 101.21 595.32 98.50 
+Max: 595.32
+Min: -12.00
+Average: 174.01
+Last five: 87.00 101.21 595.32 98.50 -12.00 
