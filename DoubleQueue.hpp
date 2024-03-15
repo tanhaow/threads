@@ -14,6 +14,7 @@
 //   for a double to be added if there isn't one already.
 // The queue is thread safe, with no potential for data races, or deadlocks
 ///////////////////////////////////////////////////////////////////////////////
+
 class DoubleQueue {
  public:
   // Constructor for a DoubleQueue.
@@ -44,8 +45,8 @@ class DoubleQueue {
   // and return false.
   //
   // calls to remove() or wait_remove() should return nullopt
-  // if there are no elements in the queue left. 
-  // 
+  // if there are no elements in the queue left.
+  //
   // Threads blocked on wait_remove() will be waken up to either
   // process any values left in the queue or return nullopt
   void close();
@@ -62,10 +63,10 @@ class DoubleQueue {
   std::optional<double> remove();
 
   // Removes a double from the front of the queue but if there is no double
-  // in the queue, calling thread will block or spin until there 
+  // in the queue, calling thread will block or spin until there
   // is a double available. If the the queue is closed and the queue
   // is empty, then it returns nullopt instead.
-  // 
+  //
   // This operation is thread safe.
   //
   // Arguments: None
@@ -91,18 +92,28 @@ class DoubleQueue {
   DoubleQueue& operator=(DoubleQueue&& other) = delete;
 
  private:
-  
   // define a new internal type used to represent
   // nodes in the Queue
   // Queue can be implemented as a linked list
   struct QueueNode {
     QueueNode* next;
     double value;
+    QueueNode(double val) : value(val), next(nullptr) {}
   };
 
   // Fields
-  // TODO: Add
-  
+  QueueNode* head;
+  QueueNode* tail;
+  int size;
+  bool isClosed;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+
+  // Helper methods
+  void lockQueue();
+  void unlockQueue();
+  void waitForItems();
+  void notifyWaiters();
 };
 
 #endif  // DOUBLEQUEUE_HPP_

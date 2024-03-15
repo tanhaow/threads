@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
   BitMap negative(width, height);
 
   // Check the command above succeed
-  if (image.check_error() != BMP_OK) {
+  if (negative.check_error() != BMP_OK) {
     perror("ERROR: Failed to open BMP file.");
     return EXIT_FAILURE;
   }

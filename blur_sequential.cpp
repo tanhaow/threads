@@ -15,8 +15,6 @@ constexpr UCHAR MAX_COLOR_VALUE = 255U;
 unsigned int height;
 unsigned int width;
 
-bool isPixelInBounds(size_t x, size_t y);
-
 int main(int argc, char* argv[]) {
   // Check input commands
   if (argc != 4) {
@@ -70,7 +68,7 @@ int main(int argc, char* argv[]) {
   BitMap blur(width, height);
 
   // Check the command above succeed
-  if (image.check_error() != BMP_OK) {
+  if (blur.check_error() != BMP_OK) {
     perror("ERROR: Failed to open BMP file.");
     return EXIT_FAILURE;
   }
@@ -88,8 +86,6 @@ int main(int argc, char* argv[]) {
 
       for (size_t yyy = startY; yyy <= endY; ++yyy) {
         for (size_t xxx = startX; xxx <= endX; ++xxx) {
-          // Assuming isPixelInBounds ensures xxx and yyy are within image
-          // dimensions
           ++pixels_counter;
           RGB color = image.get_pixel(xxx, yyy);
           total_red += color.red;
@@ -103,11 +99,11 @@ int main(int argc, char* argv[]) {
       }
 
       // Debug output - casting to ensure numerical output
-      cout << "Accumulated Colors for (" << x << ", " << y
-           << "): Red=" << static_cast<unsigned int>(total_red)
-           << ", Green=" << static_cast<unsigned int>(total_green)
-           << ", Blue=" << static_cast<unsigned int>(total_blue)
-           << ", Counter=" << pixels_counter << endl;
+      // cout << "Accumulated Colors for (" << x << ", " << y
+      //      << "): Red=" << static_cast<unsigned int>(total_red)
+      //      << ", Green=" << static_cast<unsigned int>(total_green)
+      //      << ", Blue=" << static_cast<unsigned int>(total_blue)
+      //      << ", Counter=" << pixels_counter << endl;
 
       RGB average_color = {static_cast<UCHAR>(total_red / pixels_counter),
                            static_cast<UCHAR>(total_green / pixels_counter),
@@ -125,15 +121,4 @@ int main(int argc, char* argv[]) {
   }
 
   return EXIT_SUCCESS;
-}
-
-bool isPixelInBounds(size_t x, size_t y) {
-  // Check if the pixel coordinates are within the image bounds
-  if (x < width && y < height) {
-    cout << "Pixel (" << x << ", " << y << ") is in bounds." << endl;
-    return true;  // The pixel is within bounds
-  } else {
-    cout << "Pixel (" << x << ", " << y << ") is out of bounds." << endl;
-    return false;  // The pixel is out of bounds
-  }
 }
