@@ -5,8 +5,9 @@
 #include <iostream>
 #include <numeric>
 #include <optional>
+#include <sstream>  // For std::stringstream
 #include <vector>
-#include "DoubleQueue.hpp"
+#include "DoubleQueue.hpp"  // Ensure this is implemented correctly.
 
 using namespace std;
 
@@ -17,12 +18,15 @@ pthread_mutex_t cinMutex = PTHREAD_MUTEX_INITIALIZER;   // Mutex for cin
 pthread_mutex_t coutMutex = PTHREAD_MUTEX_INITIALIZER;  // Mutex for cout
 
 // Function to perform synchronized input operation
-string synchronizedInput() {
-  string input;
-  pthread_mutex_lock(&cinMutex);    // Lock cin mutex
-  getline(cin, input);              // reads standard input (cin)
-  pthread_mutex_unlock(&cinMutex);  // Unlock cin mutex
-  return input;
+bool synchronizedInput(string& input) {
+  pthread_mutex_lock(&cinMutex);
+  if (!getline(cin, input)) {
+    endOfInput = true;  // Signal EOF has been encountered
+    pthread_mutex_unlock(&cinMutex);
+    return false;
+  }
+  pthread_mutex_unlock(&cinMutex);
+  return true;
 }
 
 // Function to perform synchronized output operation
@@ -34,8 +38,12 @@ void synchronizedOutput(const string& output) {
 
 void* readerThread(void* arg) {
   double num;
-  while (!endOfInput) {
-    string input = synchronizedInput();  // Perform synchronized input
+  while (true) {
+    string input;
+    if (!synchronizedInput(
+            input))  // Perform synchronized input and check for EOF
+      break;         // Exit loop if end of input
+
     if (input.empty())
       continue;  // Skip empty input lines
 
@@ -50,36 +58,32 @@ void* readerThread(void* arg) {
       // Ignore inputs that are out of double range
     }
   }
+  queue.close();  // Signal to the printerThread that there will be no more
+                  // numbers
   return nullptr;
 }
 
 void* printerThread(void* arg) {
   vector<double> lastFiveNumbers;
   optional<double> num;
-  // loop as long as queue.wait_remove() returns a value:
-  // If the queue is empty, blocks the thread
-  // until a new item is added to the queue or the queue is closed.
   while ((num = queue.wait_remove())) {
     lastFiveNumbers.push_back(*num);
     if (lastFiveNumbers.size() > 5) {
       lastFiveNumbers.erase(lastFiveNumbers.begin());
     }
 
-    // Calculate and display stats
-    double maxVal =
-        *max_element(lastFiveNumbers.begin(), lastFiveNumbers.end());
-    double minVal =
-        *min_element(lastFiveNumbers.begin(), lastFiveNumbers.end());
-    double avg =
-        accumulate(lastFiveNumbers.begin(), lastFiveNumbers.end(), 0.0) /
-        lastFiveNumbers.size();
-
-    // Construct the output string
-    stringstream output;
+    stringstream output;  // Use stringstream to construct output
     output << setprecision(2) << fixed;
-    output << "Max: " << maxVal << endl;
-    output << "Min: " << minVal << endl;
-    output << "Average: " << avg << endl;
+    output << "Max: "
+           << *max_element(lastFiveNumbers.begin(), lastFiveNumbers.end())
+           << endl;
+    output << "Min: "
+           << *min_element(lastFiveNumbers.begin(), lastFiveNumbers.end())
+           << endl;
+    output << "Average: "
+           << accumulate(lastFiveNumbers.begin(), lastFiveNumbers.end(), 0.0) /
+                  lastFiveNumbers.size()
+           << endl;
     output << "Last five: ";
     for (double val : lastFiveNumbers) {
       output << val << " ";
