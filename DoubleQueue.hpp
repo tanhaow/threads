@@ -98,7 +98,7 @@ class DoubleQueue {
   struct QueueNode {
     QueueNode* next;
     double value;
-    QueueNode(double val) : value(val), next(nullptr) {}
+    QueueNode(double val) : next(nullptr), value(val) {}
   };
 
   // Fields
@@ -114,6 +114,8 @@ class DoubleQueue {
   void unlockQueue();
   void waitForItems();
   void notifyWaiters();
+
+  std::optional<double> coreRemove();  // Declaration of coreRemove
 };
 
 #endif  // DOUBLEQUEUE_HPP_

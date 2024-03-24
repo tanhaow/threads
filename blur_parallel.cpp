@@ -1,23 +1,18 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 #include "qdbmp.hpp"
 
-using std::cerr;
-using std::cout;
-using std::endl;
-using std::max;
-using std::min;
-using std::string;
-using std::thread;
-using std::vector;
+using namespace std;
 
 constexpr UCHAR MAX_COLOR_VALUE = 255U;
 unsigned int height;
 unsigned int width;
+mutex blurMutex;
 
 void processSection(int startX,
                     int startY,
@@ -88,50 +83,42 @@ int main(int argc, char* argv[]) {
   // cout << "The block size is: " << block_size << endl;
 
   // Construct a BitMap object using the input file specified
+
+  // Load image and prepare for processing
   BitMap image(input_fname);
   if (image.check_error() != BMP_OK) {
     perror("ERROR: Failed to open BMP file.");
     return EXIT_FAILURE;
   }
 
-  // Create a new BitMap for output the blur image
   height = image.height();
   width = image.width();
   BitMap blur(width, height);
-  // Check the command above succeed
   if (blur.check_error() != BMP_OK) {
     perror("ERROR: Failed to open BMP file.");
     return EXIT_FAILURE;
   }
 
-  // Calculate workload per thread
-  size_t totalPixels = width * height;
-  size_t pixelsPerThread = totalPixels / thread_count;
+  // Calculate workload per thread (by rows)
+  int rowsPerThread = height / thread_count;
+  int extraRows = height % thread_count;
+
   vector<thread> threads;
 
-  // STEP 1: Calculate the work (pixels) to process for a thread
+  int currentStartY = 0;
   for (int i = 0; i < thread_count; ++i) {
-    int startX = (i * pixelsPerThread) % width;  // which column
-    int startY = (i * pixelsPerThread) / width;  // which row
-    int endPixel = min((i + 1) * pixelsPerThread, totalPixels);
-    int endX = endPixel % width;
-    int endY = endPixel / width;
-    // Adjust for the case where endPixel is exactly at the end of a row
-    // this is due to % mod operation effectively "wraps around" to the
-    // beginning of the next row. but this is not what we want for determining
-    // end boundaries.
-    if (endX == 0) {
-      endX = width;
-      endY -= 1;
-    }
-    // STEP 2: Create the new thread to process these pixels
-    thread newThread(processSection, startX, startY, endX, endY,
-                     std::ref(image), std::ref(blur), block_size);
-    // std::ref allows us to pass in a reference to access the original images
-    // directly, without passing in a new copy of the image
+    int rowsForThisThread = rowsPerThread + (i < extraRows ? 1 : 0);
+    int endY = currentStartY + rowsForThisThread - 1;
 
-    // STEP 3: Push this thread to our list of threads
-    threads.push_back(std::move(newThread));
+    // Log the section of the image assigned to each thread
+    cout << "Thread " << i + 1 << " processing rows " << currentStartY << " to "
+         << endY << endl;
+
+    // Spawn a thread to process a section of the image
+    threads.emplace_back(processSection, 0, currentStartY, width - 1, endY,
+                         ref(image), ref(blur), block_size);
+
+    currentStartY += rowsForThisThread;
   }
 
   // Wait for all threads to complete
@@ -158,14 +145,10 @@ void processSection(int startX,
                     BitMap& image,
                     BitMap& blur,
                     int block_size) {
-  // Iterate over each row in the section
+  // Iterate over each row in the section assigned to this thread
   for (int y = startY; y <= endY; ++y) {
-    // Determine the start and end x coordinates for the current row
-    int currentStartX = (y == startY) ? startX : 0;
-    int currentEndX = (y == endY) ? endX : width - 1;
-
-    // Iterate over each pixel in the current row
-    for (int x = currentStartX; x <= currentEndX; ++x) {
+    // startX and endX now represent the full width of the image for each row
+    for (int x = startX; x <= endX; ++x) {
       size_t pixels_counter = 0;
       unsigned int total_red = 0, total_green = 0, total_blue = 0;
 
@@ -186,13 +169,16 @@ void processSection(int startX,
         }
       }
 
-      if (pixels_counter == 0) {
-        continue;  // To avoid division by zero
-      }
+      // Avoid division by zero
+      if (pixels_counter == 0)
+        continue;
 
+      // Calculate the average color of the block
       RGB average_color = {static_cast<UCHAR>(total_red / pixels_counter),
                            static_cast<UCHAR>(total_green / pixels_counter),
                            static_cast<UCHAR>(total_blue / pixels_counter)};
+
+      // Set the pixel color on the blur image
       blur.set_pixel(x, y, average_color);
     }
   }
